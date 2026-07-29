@@ -356,11 +356,6 @@
       display: none;
     }
 
-    .article-config {
-      display: grid;
-      gap: 8px;
-    }
-
     .article-card {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -392,12 +387,6 @@
       justify-content: space-between;
       gap: 8px;
       flex-wrap: wrap;
-    }
-
-    .article-form {
-      display: grid;
-      gap: 8px;
-      margin-top: 12px;
     }
 
     .review-grid {
@@ -820,7 +809,7 @@
 
       #daily-workbench.articles-mode .article-appbar {
         display: grid;
-        grid-template-columns: 42px minmax(0, 1fr) 42px;
+        grid-template-columns: 42px minmax(0, 1fr);
         align-items: center;
         gap: 10px;
         padding: 8px 12px 10px;
@@ -842,8 +831,7 @@
 
       .schedule-menu,
       .schedule-add,
-      .article-menu,
-      .article-add {
+      .article-menu {
         min-height: 42px;
         border: 0;
         background: transparent;
@@ -852,22 +840,11 @@
         line-height: 1;
       }
 
-      .schedule-add,
-      .article-add {
+      .schedule-add {
         border-radius: 10px;
         background: var(--accent);
         color: var(--accent-ink);
         font-size: 32px;
-      }
-
-      #daily-workbench.articles-mode .article-config {
-        display: none;
-        padding: 12px;
-        border-bottom: 1px solid var(--line);
-      }
-
-      #daily-workbench.articles-mode .article-config.open {
-        display: grid;
       }
 
       #daily-workbench.articles-mode .article {
@@ -1256,18 +1233,6 @@
             <h2>外刊阅读</h2>
             <p class="muted" id="articleDateLine">等待今日推送</p>
           </div>
-          <button type="button" class="article-add" id="articleAddBtn" aria-label="手动添加外刊">+</button>
-        </div>
-        <div class="article-config" id="articleConfig">
-          <h2>外刊阅读</h2>
-          <p class="muted">Daily automation adds one complete English reading passage here</p>
-          <form id="articleForm" class="article-form">
-            <input id="articleTitle" name="title" placeholder="标题" required>
-            <input id="articleSource" name="source" placeholder="来源">
-            <input id="articleUrl" name="url" type="url" placeholder="链接">
-            <textarea id="articleNote" name="note" placeholder="摘记"></textarea>
-            <button class="primary" type="submit">加入阅读</button>
-          </form>
         </div>
         <div id="articleList" class="article"></div>
       </section>
@@ -1787,25 +1752,9 @@
         state.articles.forEach((article) => {
           const card = document.createElement("article");
           card.className = "article-card";
-          const titleEl = document.createElement(article.url ? "a" : "h3");
-          if (article.url) {
-            titleEl.href = article.url;
-            titleEl.target = "_blank";
-            titleEl.rel = "noreferrer";
-          }
+          const titleEl = document.createElement("h3");
           titleEl.textContent = article.title;
           card.appendChild(titleEl);
-
-          const source = document.createElement("p");
-          source.className = "muted";
-          source.textContent = article.source || "外刊";
-          card.appendChild(source);
-
-          if (article.note) {
-            const note = document.createElement("p");
-            note.textContent = article.note;
-            card.appendChild(note);
-          }
 
           appendPassage(card, article.passage || article.summary);
           appendPhraseList(card, article.phrases);
@@ -1994,21 +1943,6 @@
         persist();
       });
 
-      $("articleForm").addEventListener("submit", (event) => {
-        event.preventDefault();
-        state.articles.unshift({
-          id: crypto.randomUUID(),
-          title: $("articleTitle").value.trim(),
-          source: $("articleSource").value.trim(),
-          url: $("articleUrl").value.trim(),
-          note: $("articleNote").value.trim(),
-          read: false
-        });
-        event.target.reset();
-        $("articleConfig").classList.remove("open");
-        persist();
-      });
-
       $("transactionType").addEventListener("change", (event) => {
         $("transactionCategory").value = event.target.value === "income" ? "家教收入" : "学习资料";
       });
@@ -2148,10 +2082,6 @@
 
       $("articleBackBtn").addEventListener("click", () => {
         window.showWorkbenchView("overview");
-      });
-
-      $("articleAddBtn").addEventListener("click", () => {
-        $("articleConfig").classList.toggle("open");
       });
 
       $("deskPet").addEventListener("click", showPetLine);
