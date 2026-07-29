@@ -690,7 +690,7 @@
       <section class="view" data-view="articles">
       <section class="panel">
         <h2>外刊阅读</h2>
-        <p class="muted">可以手动加入；启用每日自动化后，会每天写入一篇新的外刊</p>
+        <p class="muted">Daily automation adds one complete English reading passage here</p>
         <div id="articleList" class="article"></div>
         <form id="articleForm" class="article-form">
           <input id="articleTitle" name="title" placeholder="标题" required>
@@ -740,11 +740,11 @@
         //   title: "Article title",
         //   source: "Reuters",
         //   url: "https://example.com",
-        //   note: "为什么值得读",
-        //   summary: ["中文摘要 1", "中文摘要 2"],
-        //   phrases: [{ text: "key phrase", meaning: "中文解释" }],
-        //   questions: ["思考问题"],
-        //   plan: "25-35 分钟阅读安排",
+        //   note: "Why this is worth reading today",
+        //   passage: "A complete original English reading passage based on verified facts.",
+        //   phrases: [{ text: "key phrase", meaning: "English explanation" }],
+        //   questions: ["Discussion question"],
+        //   plan: "25-35 minute reading plan",
         //   read: false
         // }]
       };
@@ -996,9 +996,9 @@
             card.appendChild(note);
           }
 
-          appendList(card, "摘要", article.summary);
+          appendPassage(card, article.passage || article.summary);
           appendPhraseList(card, article.phrases);
-          appendList(card, "问题", article.questions);
+          appendList(card, "Discussion Questions", article.questions);
 
           if (article.plan) {
             const plan = document.createElement("p");
@@ -1040,15 +1040,29 @@
         parent.appendChild(list);
       }
 
+      function appendPassage(parent, passage) {
+        if (!passage || (Array.isArray(passage) && !passage.length)) return;
+        const title = document.createElement("h3");
+        title.textContent = "Passage";
+        parent.appendChild(title);
+        const paragraphs = Array.isArray(passage) ? passage : String(passage).split(/\n+/);
+        paragraphs.forEach((text) => {
+          if (!String(text).trim()) return;
+          const paragraph = document.createElement("p");
+          paragraph.textContent = text;
+          parent.appendChild(paragraph);
+        });
+      }
+
       function appendPhraseList(parent, phrases) {
         if (!Array.isArray(phrases) || !phrases.length) return;
         const title = document.createElement("h3");
-        title.textContent = "表达";
+        title.textContent = "Key Language";
         parent.appendChild(title);
         const list = document.createElement("ul");
         phrases.forEach((phrase) => {
           const li = document.createElement("li");
-          li.textContent = typeof phrase === "string" ? phrase : `${phrase.text}：${phrase.meaning}`;
+          li.textContent = typeof phrase === "string" ? phrase : `${phrase.text}: ${phrase.meaning}`;
           list.appendChild(li);
         });
         parent.appendChild(list);
