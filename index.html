@@ -1,0 +1,1203 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1769c2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Jade's Workbuddy">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Jade's Workbuddy</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="workbuddy-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="workbuddy-icon.svg">
+</head>
+<body>
+<div id="daily-workbench">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef6ff;
+      --panel: #ffffff;
+      --panel-strong: #dceeff;
+      --text: #10243f;
+      --muted: #5f7691;
+      --line: #bfd6ed;
+      --accent: #1769c2;
+      --accent-ink: #ffffff;
+      --warn: #9b5c00;
+      --blue: #1769c2;
+      --red: #b23855;
+      --shadow: 0 10px 30px rgba(23, 105, 194, 0.10);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #eef6ff;
+        --panel: #ffffff;
+        --panel-strong: #dceeff;
+        --text: #10243f;
+        --muted: #5f7691;
+        --line: #bfd6ed;
+        --accent: #1769c2;
+        --accent-ink: #ffffff;
+        --warn: #9b5c00;
+        --blue: #1769c2;
+        --red: #b23855;
+        --shadow: 0 10px 30px rgba(23, 105, 194, 0.10);
+      }
+    }
+
+    #daily-workbench {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px;
+      padding-bottom: calc(18px + env(safe-area-inset-bottom));
+      box-sizing: border-box;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 4px 2px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    h3 {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .date-line {
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .day-picker {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .day-picker input {
+      width: 148px;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+    }
+
+    button.ghost {
+      background: transparent;
+    }
+
+    button.icon {
+      width: 36px;
+      min-height: 36px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-rail {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      position: sticky;
+      top: 14px;
+    }
+
+    .nav-button {
+      width: 100%;
+      justify-content: flex-start;
+      text-align: left;
+      background: transparent;
+    }
+
+    .nav-button[aria-selected="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+    }
+
+    .view-stack {
+      min-width: 0;
+    }
+
+    .view {
+      display: none;
+      gap: 14px;
+    }
+
+    .view.active {
+      display: grid;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      min-height: 74px;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 22px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .metric span,
+    .muted {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: minmax(190px, 1fr) 108px 108px 118px auto;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 42px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--text);
+      padding: 8px 10px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 82px;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .task {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) 86px 74px 36px;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: var(--bg);
+    }
+
+    .task input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      min-height: 18px;
+      margin: 0;
+    }
+
+    .task-title {
+      overflow-wrap: anywhere;
+      font-weight: 500;
+    }
+
+    .task-title.done {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .pill {
+      justify-self: start;
+      min-width: 64px;
+      text-align: center;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .pill.high {
+      color: var(--red);
+      border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+    }
+
+    .pill.medium {
+      color: var(--warn);
+      border-color: color-mix(in srgb, var(--warn) 44%, var(--line));
+    }
+
+    .pill.low {
+      color: var(--blue);
+      border-color: color-mix(in srgb, var(--blue) 38%, var(--line));
+    }
+
+    .article {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .article-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .article-card a {
+      color: var(--accent);
+      overflow-wrap: anywhere;
+      font-weight: 500;
+    }
+
+    .article-card ul,
+    .article-card ol {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .article-card li {
+      margin: 4px 0;
+    }
+
+    .article-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .article-form {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .review-grid {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .money-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .money-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-strong);
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .money-box b {
+      display: block;
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      overflow-wrap: anywhere;
+    }
+
+    .money-form {
+      display: grid;
+      grid-template-columns: 92px 110px 118px minmax(160px, 1fr) auto;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .money-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .money-row {
+      display: grid;
+      grid-template-columns: 82px minmax(0, 1fr) 96px 36px;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      padding: 8px;
+    }
+
+    .money-amount {
+      justify-self: end;
+      font-weight: 500;
+    }
+
+    .money-amount.income {
+      color: var(--accent);
+    }
+
+    .money-amount.expense {
+      color: var(--red);
+    }
+
+    .quote {
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      margin-top: 12px;
+      padding: 14px 2px 2px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .quote strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .empty {
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: var(--text);
+      color: var(--bg);
+      padding: 10px 12px;
+      border-radius: 8px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+      max-width: min(360px, calc(100vw - 36px));
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 940px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 720px) {
+      #daily-workbench {
+        padding: 10px;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom));
+      }
+
+      .shell {
+        grid-template-columns: 104px minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .topbar {
+        grid-column: 1 / -1;
+      }
+
+      .panel {
+        padding: 12px;
+      }
+
+      .topbar {
+        gap: 10px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric {
+        min-height: 66px;
+        padding: 10px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .money-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .money-form {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .day-picker {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+
+      .day-picker input {
+        width: 100%;
+      }
+
+      .money-form input[name="note"],
+      .money-form button {
+        grid-column: 1 / -1;
+      }
+
+      .money-row {
+        grid-template-columns: 76px minmax(0, 1fr) 36px;
+      }
+
+      .money-amount {
+        grid-column: 2;
+        justify-self: start;
+      }
+
+      .money-row button {
+        grid-column: 3;
+        grid-row: 1;
+      }
+
+      .task {
+        grid-template-columns: 28px minmax(0, 1fr) 36px;
+        align-items: start;
+      }
+
+      .task .pill {
+        grid-column: 2;
+      }
+
+      .task > .muted {
+        grid-column: 2;
+      }
+
+      .task button {
+        grid-column: 3;
+        grid-row: 1;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+
+      .toolbar {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .article-actions {
+        align-items: stretch;
+      }
+    }
+  </style>
+
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>Jade's Workbuddy</h1>
+        <p class="date-line" id="todayLabel"></p>
+      </div>
+      <div class="toolbar">
+        <label class="day-picker">
+          <span>日期</span>
+          <input id="dayPicker" type="date">
+        </label>
+        <button type="button" id="exportBtn">导出</button>
+        <button type="button" id="resetBtn" class="ghost">清空当日</button>
+      </div>
+    </header>
+
+    <nav class="nav-rail panel" aria-label="功能导航">
+      <button type="button" class="nav-button" data-view-target="overview" aria-selected="true" onclick="window.showWorkbenchView('overview')">概览</button>
+      <button type="button" class="nav-button" data-view-target="tasks" aria-selected="false" onclick="window.showWorkbenchView('tasks')">任务</button>
+      <button type="button" class="nav-button" data-view-target="finance" aria-selected="false" onclick="window.showWorkbenchView('finance')">收支</button>
+      <button type="button" class="nav-button" data-view-target="articles" aria-selected="false" onclick="window.showWorkbenchView('articles')">外刊</button>
+      <button type="button" class="nav-button" data-view-target="review" aria-selected="false" onclick="window.showWorkbenchView('review')">回顾</button>
+    </nav>
+
+    <section class="view-stack">
+      <section class="view active" data-view="overview">
+        <section class="metrics" aria-label="当日概览">
+          <div class="metric"><b id="doneCount">0</b><span>已完成</span></div>
+          <div class="metric"><b id="openCount">0</b><span>待处理</span></div>
+          <div class="metric"><b id="focusCount">0</b><span>高优先级</span></div>
+          <div class="metric"><b id="readCount">0</b><span>外刊阅读</span></div>
+        </section>
+        <section class="panel">
+          <h2>当日提醒</h2>
+          <p class="muted">左侧选择功能，记录今天真正发生的事。</p>
+        </section>
+      </section>
+
+      <section class="view" data-view="tasks">
+      <section class="panel">
+        <div>
+          <h2>任务安排</h2>
+          <p class="muted">任务会保存在当前浏览器</p>
+        </div>
+        <form id="taskForm" class="form-grid">
+          <input id="taskTitle" name="title" placeholder="任务" required>
+          <select id="taskPriority" name="priority" aria-label="优先级">
+            <option value="high">高</option>
+            <option value="medium" selected>中</option>
+            <option value="low">低</option>
+          </select>
+          <input id="taskMinutes" name="minutes" type="number" min="5" step="5" value="30" aria-label="分钟">
+          <input id="taskBlock" name="block" placeholder="时间段">
+          <button class="primary" type="submit">添加</button>
+        </form>
+        <div id="taskList" class="task-list"></div>
+      </section>
+      </section>
+
+      <section class="view" data-view="finance">
+      <section class="panel">
+        <div>
+          <h2>收支记录</h2>
+          <p class="muted">适合记录家教收入、学习资料、交通和日常支出</p>
+        </div>
+        <div class="money-summary" aria-label="今日收支概览">
+          <div class="money-box"><b id="incomeTotal">¥0.00</b><span class="muted">当日收入</span></div>
+          <div class="money-box"><b id="expenseTotal">¥0.00</b><span class="muted">当日支出</span></div>
+          <div class="money-box"><b id="balanceTotal">¥0.00</b><span class="muted">当日结余</span></div>
+        </div>
+        <div class="money-summary" aria-label="本月收支概览">
+          <div class="money-box"><b id="monthIncomeTotal">¥0.00</b><span class="muted">本月收入</span></div>
+          <div class="money-box"><b id="monthExpenseTotal">¥0.00</b><span class="muted">本月支出</span></div>
+          <div class="money-box"><b id="monthBalanceTotal">¥0.00</b><span class="muted">本月结余</span></div>
+        </div>
+        <form id="transactionForm" class="money-form">
+          <select id="transactionType" name="type" aria-label="收支类型">
+            <option value="income">收入</option>
+            <option value="expense">支出</option>
+          </select>
+          <input id="transactionAmount" name="amount" type="number" min="0" step="0.01" placeholder="金额" required>
+          <select id="transactionCategory" name="category" aria-label="类别">
+            <option value="家教收入">家教收入</option>
+            <option value="学习资料">学习资料</option>
+            <option value="课程辅导">课程辅导</option>
+            <option value="交通">交通</option>
+            <option value="餐饮">餐饮</option>
+            <option value="其他">其他</option>
+          </select>
+          <input id="transactionNote" name="note" placeholder="备注">
+          <button class="primary" type="submit">记录</button>
+        </form>
+        <div id="transactionList" class="money-list"></div>
+      </section>
+      </section>
+
+      <section class="view" data-view="articles">
+      <section class="panel">
+        <h2>外刊阅读</h2>
+        <p class="muted">可以手动加入；启用每日自动化后，会每天写入一篇新的外刊</p>
+        <div id="articleList" class="article"></div>
+        <form id="articleForm" class="article-form">
+          <input id="articleTitle" name="title" placeholder="标题" required>
+          <input id="articleSource" name="source" placeholder="来源">
+          <input id="articleUrl" name="url" type="url" placeholder="链接">
+          <textarea id="articleNote" name="note" placeholder="摘记"></textarea>
+          <button class="primary" type="submit">加入阅读</button>
+        </form>
+      </section>
+      </section>
+
+      <section class="view" data-view="review">
+      <section class="panel">
+        <h2>收工回顾</h2>
+        <div class="review-grid">
+          <textarea id="reviewWin" placeholder="今天推进了什么"></textarea>
+          <textarea id="reviewNext" placeholder="明天第一件事"></textarea>
+        </div>
+      </section>
+      </section>
+    </section>
+    <footer class="quote" id="dailyQuote"></footer>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    window.showWorkbenchView = function (viewName) {
+      document.querySelectorAll("[data-view]").forEach((view) => {
+        const isActive = view.dataset.view === viewName;
+        view.classList.toggle("active", isActive);
+        view.hidden = !isActive;
+      });
+      document.querySelectorAll("[data-view-target]").forEach((button) => {
+        button.setAttribute("aria-selected", String(button.dataset.viewTarget === viewName));
+      });
+    };
+  </script>
+
+  <script>
+    (() => {
+      const storeKey = "codex-daily-workbench-v1";
+      const actualTodayKey = getLocalDateKey(new Date());
+      const embeddedArticleFeed = {
+        // 每日自动化可以把当天外刊写到这里，格式示例：
+        // "2026-07-30": [{
+        //   id: "2026-07-30-article",
+        //   title: "Article title",
+        //   source: "Reuters",
+        //   url: "https://example.com",
+        //   note: "为什么值得读",
+        //   summary: ["中文摘要 1", "中文摘要 2"],
+        //   phrases: [{ text: "key phrase", meaning: "中文解释" }],
+        //   questions: ["思考问题"],
+        //   plan: "25-35 分钟阅读安排",
+        //   read: false
+        // }]
+      };
+      let currentDayKey = actualTodayKey;
+      let state = loadDay(currentDayKey);
+
+      const $ = (id) => document.getElementById(id);
+      const priorityText = { high: "高", medium: "中", low: "低" };
+
+      $("dayPicker").value = currentDayKey;
+      renderHeaderDate();
+      renderDailyQuote();
+
+      function getLocalDateKey(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function loadDay(dayKey) {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(storeKey) || "{}");
+          const loaded = parsed[dayKey] || seedDay();
+          normalizeDayState(loaded);
+          mergeEmbeddedArticles(loaded, dayKey);
+          return loaded;
+        } catch {
+          const seeded = seedDay();
+          normalizeDayState(seeded);
+          mergeEmbeddedArticles(seeded, dayKey);
+          return seeded;
+        }
+      }
+
+      function seedDay() {
+        return {
+          tasks: [
+            { id: crypto.randomUUID(), title: "确认今天最重要的 3 件事", priority: "high", minutes: 15, block: "开工", done: false },
+            { id: crypto.randomUUID(), title: "完成一轮外刊精读", priority: "medium", minutes: 30, block: "阅读", done: false }
+          ],
+          articles: [],
+          transactions: [],
+          reviewWin: "",
+          reviewNext: ""
+        };
+      }
+
+      function normalizeDayState(dayState) {
+        dayState.tasks = Array.isArray(dayState.tasks) ? dayState.tasks : [];
+        dayState.articles = Array.isArray(dayState.articles) ? dayState.articles : [];
+        dayState.transactions = Array.isArray(dayState.transactions) ? dayState.transactions : [];
+        dayState.reviewWin = dayState.reviewWin || "";
+        dayState.reviewNext = dayState.reviewNext || "";
+      }
+
+      function mergeEmbeddedArticles(dayState, dayKey) {
+        const embedded = embeddedArticleFeed[dayKey] || [];
+        embedded.forEach((article) => {
+          if (!dayState.articles.some((item) => item.id === article.id || item.url === article.url)) {
+            dayState.articles.push({ ...article, read: false });
+          }
+        });
+      }
+
+      function persist() {
+        const all = JSON.parse(localStorage.getItem(storeKey) || "{}");
+        all[currentDayKey] = state;
+        localStorage.setItem(storeKey, JSON.stringify(all, null, 2));
+        render();
+      }
+
+      function toast(message) {
+        const el = $("toast");
+        el.textContent = message;
+        el.classList.add("show");
+        setTimeout(() => el.classList.remove("show"), 1700);
+      }
+
+      function render() {
+        renderHeaderDate();
+        const done = state.tasks.filter((task) => task.done).length;
+        const open = state.tasks.length - done;
+        $("doneCount").textContent = done;
+        $("openCount").textContent = open;
+        $("focusCount").textContent = state.tasks.filter((task) => !task.done && task.priority === "high").length;
+        $("readCount").textContent = state.articles.filter((article) => article.read).length;
+        $("reviewWin").value = state.reviewWin || "";
+        $("reviewNext").value = state.reviewNext || "";
+        renderTasks();
+        renderArticles();
+        renderTransactions();
+      }
+
+      function renderTasks() {
+        const list = $("taskList");
+        list.innerHTML = "";
+        if (!state.tasks.length) {
+          list.innerHTML = '<div class="empty">今天还没有任务</div>';
+          return;
+        }
+        state.tasks
+          .slice()
+          .sort((a, b) => ["high", "medium", "low"].indexOf(a.priority) - ["high", "medium", "low"].indexOf(b.priority))
+          .forEach((task) => {
+            const row = document.createElement("div");
+            row.className = "task";
+            row.innerHTML = `
+              <input type="checkbox" ${task.done ? "checked" : ""} aria-label="完成">
+              <div>
+                <div class="task-title ${task.done ? "done" : ""}"></div>
+                <div class="muted"></div>
+              </div>
+              <span class="pill ${task.priority}">${priorityText[task.priority]}</span>
+              <span class="muted">${Number(task.minutes || 0)} 分钟</span>
+              <button type="button" class="icon" aria-label="删除">x</button>
+            `;
+            row.querySelector(".task-title").textContent = task.title;
+            row.querySelector(".muted").textContent = task.block || "未安排";
+            row.querySelector("input").addEventListener("change", (event) => {
+              task.done = event.target.checked;
+              persist();
+            });
+            row.querySelector("button").addEventListener("click", () => {
+              state.tasks = state.tasks.filter((item) => item.id !== task.id);
+              persist();
+            });
+            list.appendChild(row);
+          });
+      }
+
+      function renderTransactions() {
+        const transactions = state.transactions || [];
+        const income = transactions
+          .filter((item) => item.type === "income")
+          .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+        const expense = transactions
+          .filter((item) => item.type === "expense")
+          .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+        $("incomeTotal").textContent = formatMoney(income);
+        $("expenseTotal").textContent = formatMoney(expense);
+        $("balanceTotal").textContent = formatMoney(income - expense);
+        renderMonthTotals();
+
+        const list = $("transactionList");
+        list.innerHTML = "";
+        if (!transactions.length) {
+          list.innerHTML = '<div class="empty">今天还没有收支记录</div>';
+          return;
+        }
+        transactions.forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "money-row";
+
+          const type = document.createElement("span");
+          type.className = `pill ${item.type === "income" ? "low" : "high"}`;
+          type.textContent = item.type === "income" ? "收入" : "支出";
+          row.appendChild(type);
+
+          const detail = document.createElement("div");
+          const category = document.createElement("div");
+          category.className = "task-title";
+          category.textContent = item.category || "其他";
+          const note = document.createElement("div");
+          note.className = "muted";
+          note.textContent = item.note || "无备注";
+          detail.appendChild(category);
+          detail.appendChild(note);
+          row.appendChild(detail);
+
+          const amount = document.createElement("div");
+          amount.className = `money-amount ${item.type}`;
+          amount.textContent = `${item.type === "income" ? "+" : "-"}${formatMoney(item.amount)}`;
+          row.appendChild(amount);
+
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.className = "icon";
+          remove.setAttribute("aria-label", "删除");
+          remove.textContent = "x";
+          remove.addEventListener("click", () => {
+            state.transactions = state.transactions.filter((transaction) => transaction.id !== item.id);
+            persist();
+          });
+          row.appendChild(remove);
+
+          list.appendChild(row);
+        });
+      }
+
+      function formatMoney(value) {
+        return `¥${Number(value || 0).toFixed(2)}`;
+      }
+
+      function renderMonthTotals() {
+        const monthKey = currentDayKey.slice(0, 7);
+        const all = loadAllDays();
+        all[currentDayKey] = state;
+        let income = 0;
+        let expense = 0;
+        Object.entries(all).forEach(([dayKey, dayState]) => {
+          if (!dayKey.startsWith(monthKey) || !Array.isArray(dayState.transactions)) return;
+          dayState.transactions.forEach((item) => {
+            const amount = Number(item.amount || 0);
+            if (item.type === "income") income += amount;
+            if (item.type === "expense") expense += amount;
+          });
+        });
+        $("monthIncomeTotal").textContent = formatMoney(income);
+        $("monthExpenseTotal").textContent = formatMoney(expense);
+        $("monthBalanceTotal").textContent = formatMoney(income - expense);
+      }
+
+      function loadAllDays() {
+        try {
+          return JSON.parse(localStorage.getItem(storeKey) || "{}");
+        } catch {
+          return {};
+        }
+      }
+
+      function renderArticles() {
+        const list = $("articleList");
+        list.innerHTML = "";
+        if (!state.articles.length) {
+          list.innerHTML = '<div class="empty">等待今日推送</div>';
+          return;
+        }
+        state.articles.forEach((article) => {
+          const card = document.createElement("article");
+          card.className = "article-card";
+          const titleEl = document.createElement(article.url ? "a" : "h3");
+          if (article.url) {
+            titleEl.href = article.url;
+            titleEl.target = "_blank";
+            titleEl.rel = "noreferrer";
+          }
+          titleEl.textContent = article.title;
+          card.appendChild(titleEl);
+
+          const source = document.createElement("p");
+          source.className = "muted";
+          source.textContent = article.source || "外刊";
+          card.appendChild(source);
+
+          if (article.note) {
+            const note = document.createElement("p");
+            note.textContent = article.note;
+            card.appendChild(note);
+          }
+
+          appendList(card, "摘要", article.summary);
+          appendPhraseList(card, article.phrases);
+          appendList(card, "问题", article.questions);
+
+          if (article.plan) {
+            const plan = document.createElement("p");
+            plan.className = "muted";
+            plan.textContent = article.plan;
+            card.appendChild(plan);
+          }
+
+          const actions = document.createElement("div");
+          actions.className = "article-actions";
+          actions.innerHTML = `
+            <label><input type="checkbox" ${article.read ? "checked" : ""}> 已读</label>
+            <button type="button" class="icon" aria-label="删除">x</button>
+          `;
+          actions.querySelector("input").addEventListener("change", (event) => {
+            article.read = event.target.checked;
+            persist();
+          });
+          actions.querySelector("button").addEventListener("click", () => {
+            state.articles = state.articles.filter((item) => item.id !== article.id);
+            persist();
+          });
+          card.appendChild(actions);
+          list.appendChild(card);
+        });
+      }
+
+      function appendList(parent, label, items) {
+        if (!Array.isArray(items) || !items.length) return;
+        const title = document.createElement("h3");
+        title.textContent = label;
+        parent.appendChild(title);
+        const list = document.createElement("ol");
+        items.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          list.appendChild(li);
+        });
+        parent.appendChild(list);
+      }
+
+      function appendPhraseList(parent, phrases) {
+        if (!Array.isArray(phrases) || !phrases.length) return;
+        const title = document.createElement("h3");
+        title.textContent = "表达";
+        parent.appendChild(title);
+        const list = document.createElement("ul");
+        phrases.forEach((phrase) => {
+          const li = document.createElement("li");
+          li.textContent = typeof phrase === "string" ? phrase : `${phrase.text}：${phrase.meaning}`;
+          list.appendChild(li);
+        });
+        parent.appendChild(list);
+      }
+
+      $("taskForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        state.tasks.push({
+          id: crypto.randomUUID(),
+          title: $("taskTitle").value.trim(),
+          priority: $("taskPriority").value,
+          minutes: Number($("taskMinutes").value || 0),
+          block: $("taskBlock").value.trim(),
+          done: false
+        });
+        event.target.reset();
+        $("taskMinutes").value = 30;
+        $("taskPriority").value = "medium";
+        persist();
+      });
+
+      $("articleForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        state.articles.unshift({
+          id: crypto.randomUUID(),
+          title: $("articleTitle").value.trim(),
+          source: $("articleSource").value.trim(),
+          url: $("articleUrl").value.trim(),
+          note: $("articleNote").value.trim(),
+          read: false
+        });
+        event.target.reset();
+        persist();
+      });
+
+      $("transactionType").addEventListener("change", (event) => {
+        $("transactionCategory").value = event.target.value === "income" ? "家教收入" : "学习资料";
+      });
+
+      $("transactionForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const amount = Number($("transactionAmount").value || 0);
+        if (!Number.isFinite(amount) || amount <= 0) {
+          toast("请输入有效金额");
+          return;
+        }
+        state.transactions.unshift({
+          id: crypto.randomUUID(),
+          type: $("transactionType").value,
+          amount,
+          category: $("transactionCategory").value,
+          note: $("transactionNote").value.trim()
+        });
+        event.target.reset();
+        $("transactionType").value = "income";
+        $("transactionCategory").value = "家教收入";
+        persist();
+      });
+
+      $("reviewWin").addEventListener("input", (event) => {
+        state.reviewWin = event.target.value;
+        saveOnly();
+      });
+
+      $("reviewNext").addEventListener("input", (event) => {
+        state.reviewNext = event.target.value;
+        saveOnly();
+      });
+
+      function saveOnly() {
+        const all = JSON.parse(localStorage.getItem(storeKey) || "{}");
+        all[currentDayKey] = state;
+        localStorage.setItem(storeKey, JSON.stringify(all, null, 2));
+      }
+
+      $("exportBtn").addEventListener("click", async () => {
+        const text = JSON.stringify({ date: currentDayKey, ...state }, null, 2);
+        try {
+          await navigator.clipboard.writeText(text);
+          toast("已复制 JSON");
+        } catch {
+          const blob = new Blob([text], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `jades-workbuddy-${currentDayKey}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      });
+
+      document.querySelectorAll("[data-view-target]").forEach((button) => {
+        button.addEventListener("click", () => {
+          window.showWorkbenchView(button.dataset.viewTarget);
+        });
+      });
+
+      $("dayPicker").addEventListener("change", (event) => {
+        if (!event.target.value) return;
+        saveOnly();
+        currentDayKey = event.target.value;
+        state = loadDay(currentDayKey);
+        render();
+        renderDailyQuote();
+      });
+
+      $("resetBtn").addEventListener("click", () => {
+        if (!confirm(`清空 ${currentDayKey} 的数据？`)) return;
+        Object.assign(state, seedDay());
+        persist();
+      });
+
+      function renderHeaderDate() {
+        const [year, month, day] = currentDayKey.split("-").map(Number);
+        const date = new Date(year, month - 1, day);
+        const label = new Intl.DateTimeFormat("zh-CN", {
+          dateStyle: "full"
+        }).format(date);
+        $("todayLabel").textContent = currentDayKey === actualTodayKey ? `${label} · 今天` : label;
+        $("dayPicker").value = currentDayKey;
+      }
+
+      function renderDailyQuote() {
+        const quotes = [
+          "还不学，是准备用笔记本垫脑吗？",
+          "虽然没学多少，但起码累着了。现在把它补成真的。",
+          "你不学，有的是人学。绝望吗？那就歹毒地学习吧。",
+          "今天又想靠焦虑感动命运？命运说先把这一页做完。",
+          "别急着崩溃，题还没刷完，崩溃也请排队。",
+          "摆烂当然舒服，舒服到最后连选择权都替你省了。",
+          "你可以慢，但不要慢到让竞争对手以为你在礼让。",
+          "书不会自己进脑子，除非你真的打算用脸压着它睡觉。",
+          "别问状态在不在，状态看见计划表空着也很尴尬。",
+          "今天不想学很正常，问题是复旦也不会因为你正常就降分。",
+          "少一点精神内耗，多一点物理翻书。世界会安静很多。",
+          "如果努力暂时看不到结果，那至少先让偷懒无处遁形。"
+        ];
+        const [year, month, day] = currentDayKey.split("-").map(Number);
+        const index = Math.floor(new Date(year, month - 1, day).getTime() / 86400000) % quotes.length;
+        $("dailyQuote").innerHTML = `<strong>今日一句</strong> ${quotes[index]}`;
+      }
+
+      render();
+    })();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    }
+  </script>
+</div>
+</body>
+</html>

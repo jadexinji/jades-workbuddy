@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1769c2"/>
+  <path d="M126 132h260c28 0 50 22 50 50v194c0 28-22 50-50 50H126c-28 0-50-22-50-50V182c0-28 22-50 50-50z" fill="#eef6ff"/>
+  <path d="M126 200h260" stroke="#1769c2" stroke-width="26" stroke-linecap="round"/>
+  <path d="M126 272h146" stroke="#1769c2" stroke-width="26" stroke-linecap="round"/>
+  <path d="M126 344h210" stroke="#1769c2" stroke-width="26" stroke-linecap="round"/>
+  <text x="256" y="314" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="122" font-weight="700" fill="#10243f">JW</text>
+</svg>
