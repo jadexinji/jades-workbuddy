@@ -57,7 +57,7 @@ Deno.serve(async (request) => {
 
 async function loadCloudMemory(syncKey: string, currentDate: string) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceRoleKey = getSupabaseSecretKey();
   if (!supabaseUrl || !serviceRoleKey || !currentDate) return [];
 
   const ownerId = await sha256Hex(syncKey);
@@ -81,6 +81,21 @@ async function loadCloudMemory(syncKey: string, currentDate: string) {
   }
 
   return await response.json();
+}
+
+function getSupabaseSecretKey() {
+  const legacyKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (legacyKey) return legacyKey;
+
+  const secretKeys = Deno.env.get("SUPABASE_SECRET_KEYS");
+  if (!secretKeys) return "";
+
+  try {
+    const parsed = JSON.parse(secretKeys) as Record<string, string>;
+    return Object.values(parsed)[0] || "";
+  } catch {
+    return "";
+  }
 }
 
 async function callOpenAI(openaiKey: string, message: string, context: unknown) {
