@@ -1262,20 +1262,43 @@
       }
 
       async function supabaseRpc(functionName, payload) {
-        const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
-          method: "POST",
-          headers: {
-            apikey: supabaseAnonKey,
-            Authorization: `Bearer ${supabaseAnonKey}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
+        try {
+          const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
+            method: "POST",
+            headers: {
+              apikey: supabaseAnonKey,
+              Authorization: `Bearer ${supabaseAnonKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          });
           const text = await response.text();
-          throw new Error(text || response.statusText);
+          if (!response.ok) {
+            throw new Error(explainSupabaseError(response.status, text));
+          }
+          return text ? JSON.parse(text) : null;
+        } catch (error) {
+          if (error instanceof TypeError) {
+            throw new Error("网络连接失败");
+          }
+          throw error;
         }
-        return response.json();
+      }
+
+      function explainSupabaseError(status, text) {
+        if (text.includes("Could not find the function") || text.includes("PGRST202")) {
+          return "数据库函数未创建";
+        }
+        if (text.includes("invalid sync key")) {
+          return "同步口令不匹配";
+        }
+        if (text.includes("sync key is too short")) {
+          return "同步口令至少 8 位";
+        }
+        if (text.includes("JWT") || status === 401 || status === 403) {
+          return "Supabase key 权限异常";
+        }
+        return `云同步失败 ${status}`;
       }
 
       async function loadCloudDay(dayKey) {
@@ -1301,7 +1324,7 @@
           setCloudStatus("云端已连接");
         } catch (error) {
           console.warn(error);
-          setCloudStatus("云同步失败");
+          setCloudStatus(error.message || "云同步失败");
         }
       }
 
@@ -1311,7 +1334,7 @@
         cloudSaveTimer = setTimeout(() => {
           saveCloudDay().catch((error) => {
             console.warn(error);
-            setCloudStatus("云同步失败");
+            setCloudStatus(error.message || "云同步失败");
           });
         }, 500);
       }
@@ -1332,7 +1355,14 @@
     })();
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      navigator.serviceWorker.register("./service-worker.js").then((registration) => {
+        registration.update().catch(() => {});
+      }).catch(() => {});
+      if (window.location.search.includes("fresh=1")) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => registration.update());
+        }).catch(() => {});
+      }
     }
   </script>
 </div>
