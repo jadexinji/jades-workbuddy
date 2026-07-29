@@ -29,3 +29,20 @@ The app currently stores records in the browser's `localStorage`. A public URL l
 Open Supabase SQL Editor and run `supabase-schema.sql`.
 
 The current cloud sync uses a private sync key that Jade enters in the app. The public anon key is safe to put in the browser, while the sync key should be kept private. OpenAI API keys and Supabase service-role keys must not be put in this static site.
+
+## GPT setup
+
+The GPT panel calls a Supabase Edge Function at:
+
+```text
+https://pnupqynvlguppwyvewtl.supabase.co/functions/v1/workbuddy-chat
+```
+
+Deploy `supabase/functions/workbuddy-chat/index.ts` to Supabase, then set these Supabase Function secrets:
+
+```bash
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_MODEL=gpt-5-mini
+```
+
+Supabase normally provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. The service-role key should stay in Supabase secrets only. It lets GPT read Jade's owner-scoped daily records as long-term memory after she enters her private sync key in the app.

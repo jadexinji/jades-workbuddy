@@ -389,6 +389,50 @@
       margin-top: 12px;
     }
 
+    .gpt-log {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+      max-height: 56vh;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .gpt-message {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      padding: 10px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .gpt-message.assistant {
+      background: var(--panel-strong);
+    }
+
+    .gpt-message b {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .gpt-message p {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.55;
+    }
+
+    .gpt-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 112px;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .gpt-form textarea {
+      min-height: 108px;
+    }
+
     .money-summary {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -581,6 +625,14 @@
         grid-row: 1;
       }
 
+      .gpt-log {
+        max-height: 48vh;
+      }
+
+      .gpt-form {
+        grid-template-columns: 1fr;
+      }
+
       .task {
         grid-template-columns: 28px minmax(0, 1fr) 36px;
         align-items: start;
@@ -642,6 +694,7 @@
       <button type="button" class="nav-button" data-view-target="tasks" aria-selected="false" onclick="window.showWorkbenchView('tasks')">任务</button>
       <button type="button" class="nav-button" data-view-target="finance" aria-selected="false" onclick="window.showWorkbenchView('finance')">收支</button>
       <button type="button" class="nav-button" data-view-target="articles" aria-selected="false" onclick="window.showWorkbenchView('articles')">外刊</button>
+      <button type="button" class="nav-button" data-view-target="gpt" aria-selected="false" onclick="window.showWorkbenchView('gpt')">GPT</button>
       <button type="button" class="nav-button" data-view-target="review" aria-selected="false" onclick="window.showWorkbenchView('review')">回顾</button>
     </nav>
 
@@ -728,6 +781,18 @@
           <input id="articleUrl" name="url" type="url" placeholder="链接">
           <textarea id="articleNote" name="note" placeholder="摘记"></textarea>
           <button class="primary" type="submit">加入阅读</button>
+        </form>
+      </section>
+      </section>
+
+      <section class="view" data-view="gpt">
+      <section class="panel">
+        <h2>GPT Workbuddy</h2>
+        <p class="muted" id="gptStatus">读取你的任务、收支、外刊和复盘记录</p>
+        <div id="gptLog" class="gpt-log"></div>
+        <form id="gptForm" class="gpt-form">
+          <textarea id="gptInput" placeholder="问今天怎么排、875怎么复盘、外刊怎么精读"></textarea>
+          <button class="primary" type="submit" id="gptSendBtn">发送</button>
         </form>
       </section>
       </section>
@@ -824,6 +889,7 @@
           ],
           articles: [],
           transactions: [],
+          gptMessages: [],
           reviewWin: "",
           reviewNext: ""
         };
@@ -833,6 +899,7 @@
         dayState.tasks = Array.isArray(dayState.tasks) ? dayState.tasks : [];
         dayState.articles = Array.isArray(dayState.articles) ? dayState.articles : [];
         dayState.transactions = Array.isArray(dayState.transactions) ? dayState.transactions : [];
+        dayState.gptMessages = Array.isArray(dayState.gptMessages) ? dayState.gptMessages : [];
         dayState.reviewWin = dayState.reviewWin || "";
         dayState.reviewNext = dayState.reviewNext || "";
       }
@@ -878,6 +945,7 @@
         renderTasks();
         renderArticles();
         renderTransactions();
+        renderGptMessages();
       }
 
       function renderTasks() {
@@ -1109,6 +1177,96 @@
         parent.appendChild(list);
       }
 
+      function renderGptMessages() {
+        const log = $("gptLog");
+        log.innerHTML = "";
+        if (!state.gptMessages.length) {
+          log.innerHTML = '<div class="empty">今天还没有 GPT 对话</div>';
+          return;
+        }
+        state.gptMessages.forEach((message) => {
+          const item = document.createElement("div");
+          item.className = `gpt-message ${message.role === "assistant" ? "assistant" : "user"}`;
+          const label = document.createElement("b");
+          label.textContent = message.role === "assistant" ? "GPT" : "Jade";
+          const content = document.createElement("p");
+          content.textContent = message.content || "";
+          const time = document.createElement("span");
+          time.className = "muted";
+          time.textContent = message.createdAt ? new Date(message.createdAt).toLocaleString("zh-CN") : "";
+          item.appendChild(label);
+          item.appendChild(content);
+          item.appendChild(time);
+          log.appendChild(item);
+        });
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function setGptStatus(message) {
+        $("gptStatus").textContent = message;
+      }
+
+      function buildLocalContext() {
+        const all = loadAllDays();
+        all[currentDayKey] = state;
+        return Object.entries(all)
+          .sort(([a], [b]) => b.localeCompare(a))
+          .slice(0, 14)
+          .map(([dayKey, dayState]) => ({
+            date: dayKey,
+            tasks: (dayState.tasks || []).map((task) => ({
+              title: task.title,
+              priority: task.priority,
+              minutes: task.minutes,
+              block: task.block,
+              done: Boolean(task.done)
+            })),
+            transactions: (dayState.transactions || []).map((item) => ({
+              type: item.type,
+              amount: Number(item.amount || 0),
+              category: item.category,
+              note: item.note
+            })),
+            articles: (dayState.articles || []).map((article) => ({
+              title: article.title,
+              source: article.source,
+              read: Boolean(article.read),
+              note: article.note
+            })),
+            reviewWin: dayState.reviewWin || "",
+            reviewNext: dayState.reviewNext || ""
+          }));
+      }
+
+      async function askGpt(message) {
+        const response = await fetch(`${supabaseUrl}/functions/v1/workbuddy-chat`, {
+          method: "POST",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            syncKey,
+            currentDate: currentDayKey,
+            message,
+            currentDayData: state,
+            localContext: buildLocalContext()
+          })
+        });
+        const text = await response.text();
+        let payload = {};
+        try {
+          payload = text ? JSON.parse(text) : {};
+        } catch {
+          payload = { error: text };
+        }
+        if (!response.ok) {
+          throw new Error(payload.error || `GPT 请求失败 ${response.status}`);
+        }
+        return payload.reply || "";
+      }
+
       $("taskForm").addEventListener("submit", (event) => {
         event.preventDefault();
         state.tasks.push({
@@ -1161,6 +1319,49 @@
         $("transactionType").value = "income";
         $("transactionCategory").value = "家教收入";
         persist();
+      });
+
+      $("gptForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const message = $("gptInput").value.trim();
+        if (!message) return;
+        if (!syncKey) {
+          toast("先连接云同步口令");
+          return;
+        }
+        $("gptInput").value = "";
+        $("gptSendBtn").disabled = true;
+        setGptStatus("GPT 思考中");
+        state.gptMessages.push({
+          id: crypto.randomUUID(),
+          role: "user",
+          content: message,
+          createdAt: new Date().toISOString()
+        });
+        persist();
+        try {
+          const reply = await askGpt(message);
+          state.gptMessages.push({
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: reply,
+            createdAt: new Date().toISOString()
+          });
+          persist();
+          setGptStatus("已连接 GPT");
+        } catch (error) {
+          console.warn(error);
+          state.gptMessages.push({
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: error.message || "GPT 暂时没有接上",
+            createdAt: new Date().toISOString()
+          });
+          persist();
+          setGptStatus(error.message || "GPT 暂时没有接上");
+        } finally {
+          $("gptSendBtn").disabled = false;
+        }
       });
 
       $("reviewWin").addEventListener("input", (event) => {
