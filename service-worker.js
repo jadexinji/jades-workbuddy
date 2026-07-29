@@ -1,4 +1,4 @@
-const cacheName = "jade-workbuddy-v9";
+const cacheName = "jade-workbuddy-v10";
 const files = [
   "./index.html",
   "./manifest.webmanifest",

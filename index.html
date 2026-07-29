@@ -390,6 +390,115 @@
       margin-top: 12px;
     }
 
+    .schedule-head {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) auto;
+      align-items: end;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .schedule-head label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .week-badge {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-strong);
+      padding: 10px 12px;
+      min-height: 42px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .schedule-form {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) 96px 150px 96px minmax(120px, 1fr) auto;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .schedule-scroll {
+      margin-top: 12px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .schedule-grid {
+      min-width: 680px;
+      display: grid;
+      grid-template-columns: 116px repeat(5, minmax(104px, 1fr));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel);
+    }
+
+    .schedule-cell {
+      min-height: 82px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      box-sizing: border-box;
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .schedule-cell:nth-child(6n) {
+      border-right: 0;
+    }
+
+    .schedule-cell.header,
+    .schedule-cell.time {
+      min-height: 46px;
+      background: var(--panel-strong);
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .schedule-cell.time {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .schedule-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      padding: 7px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .schedule-card.inactive {
+      opacity: 0.46;
+    }
+
+    .schedule-card b,
+    .schedule-card span {
+      overflow-wrap: anywhere;
+    }
+
+    .schedule-card b {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .schedule-card button {
+      min-height: 30px;
+      padding: 0 8px;
+      justify-self: start;
+      font-size: 12px;
+    }
+
     .gpt-log {
       display: grid;
       gap: 10px;
@@ -585,6 +694,14 @@
         grid-template-columns: 1fr;
       }
 
+      .schedule-head {
+        grid-template-columns: 1fr;
+      }
+
+      .schedule-form {
+        grid-template-columns: 1fr;
+      }
+
       .money-summary {
         grid-template-columns: 1fr;
       }
@@ -698,6 +815,7 @@
 
     <nav class="nav-rail panel" aria-label="功能导航">
       <button type="button" class="nav-button" data-view-target="overview" aria-selected="true" onclick="window.showWorkbenchView('overview')">概览</button>
+      <button type="button" class="nav-button" data-view-target="schedule" aria-selected="false" onclick="window.showWorkbenchView('schedule')">课表</button>
       <button type="button" class="nav-button" data-view-target="tasks" aria-selected="false" onclick="window.showWorkbenchView('tasks')">任务</button>
       <button type="button" class="nav-button" data-view-target="finance" aria-selected="false" onclick="window.showWorkbenchView('finance')">收支</button>
       <button type="button" class="nav-button" data-view-target="articles" aria-selected="false" onclick="window.showWorkbenchView('articles')">外刊</button>
@@ -718,6 +836,43 @@
           <h2>当日提醒</h2>
           <p class="muted">左侧选择功能，记录今天真正发生的事。</p>
         </section>
+      </section>
+
+      <section class="view" data-view="schedule">
+      <section class="panel">
+        <div>
+          <h2>课表</h2>
+          <p class="muted">按开学日期自动计算第几周，并区分单双周</p>
+        </div>
+        <div class="schedule-head">
+          <label>
+            开学日期
+            <input id="semesterStart" type="date">
+          </label>
+          <div id="weekBadge" class="week-badge">设置开学日期</div>
+        </div>
+        <form id="scheduleForm" class="schedule-form">
+          <input id="courseTitle" name="title" placeholder="课程名称" required>
+          <select id="courseDay" name="day" aria-label="星期">
+            <option value="1">周一</option>
+            <option value="2">周二</option>
+            <option value="3">周三</option>
+            <option value="4">周四</option>
+            <option value="5">周五</option>
+          </select>
+          <select id="courseSlot" name="slot" aria-label="时间段"></select>
+          <select id="courseParity" name="parity" aria-label="单双周">
+            <option value="all">每周</option>
+            <option value="odd">单周</option>
+            <option value="even">双周</option>
+          </select>
+          <input id="courseLocation" name="location" placeholder="地点">
+          <button class="primary" type="submit">添加</button>
+        </form>
+        <div class="schedule-scroll">
+          <div id="scheduleGrid" class="schedule-grid" aria-label="周一到周五课表"></div>
+        </div>
+      </section>
       </section>
 
       <section class="view" data-view="tasks">
@@ -834,9 +989,19 @@
   <script>
     (() => {
       const storeKey = "codex-daily-workbench-v1";
+      const profileStoreKey = "jades-workbuddy-profile-v1";
       const syncStoreKey = "jades-workbuddy-sync-key-v1";
+      const profileCloudDate = "2000-01-01";
       const supabaseUrl = "https://pnupqynvlguppwyvewtl.supabase.co";
       const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXBxeW52bGd1cHB3eXZld3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMjAwMjcsImV4cCI6MjEwMDg5NjAyN30.1uxLBFs185ljVUK08TQB3QAQ3XK7zD3pGtj9hYPpAS8";
+      const weekdays = ["周一", "周二", "周三", "周四", "周五"];
+      const scheduleSlots = [
+        "8:15-9:50",
+        "10:05-11:40",
+        "13:00-14:35",
+        "14:45-16:20",
+        "18:00-19:35"
+      ];
       const actualTodayKey = getLocalDateKey(new Date());
       const embeddedArticleFeed = {
         // 每日自动化可以把当天外刊写到这里，格式示例：
@@ -855,14 +1020,24 @@
       };
       let currentDayKey = actualTodayKey;
       let state = loadDay(currentDayKey);
+      let timetableProfile = loadProfile();
       let syncKey = localStorage.getItem(syncStoreKey) || "";
       let cloudSaveTimer = null;
+      let profileCloudSaveTimer = null;
 
       const $ = (id) => document.getElementById(id);
       const priorityText = { high: "高", medium: "中", low: "低" };
+      const parityText = { all: "每周", odd: "单周", even: "双周" };
 
       $("dayPicker").value = currentDayKey;
       $("syncKeyInput").value = syncKey;
+      $("semesterStart").value = timetableProfile.timetable.semesterStart || "";
+      scheduleSlots.forEach((slot, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = slot;
+        $("courseSlot").appendChild(option);
+      });
       renderHeaderDate();
       renderDailyQuote();
 
@@ -886,6 +1061,41 @@
           mergeEmbeddedArticles(seeded, dayKey);
           return seeded;
         }
+      }
+
+      function loadProfile() {
+        try {
+          const loaded = JSON.parse(localStorage.getItem(profileStoreKey) || "{}");
+          normalizeProfile(loaded);
+          return loaded;
+        } catch {
+          return seedProfile();
+        }
+      }
+
+      function seedProfile() {
+        return {
+          timetable: {
+            semesterStart: "",
+            courses: []
+          }
+        };
+      }
+
+      function normalizeProfile(profile) {
+        profile.timetable = profile.timetable || {};
+        profile.timetable.semesterStart = profile.timetable.semesterStart || "";
+        profile.timetable.courses = Array.isArray(profile.timetable.courses) ? profile.timetable.courses : [];
+      }
+
+      function persistProfile() {
+        saveProfileLocal();
+        renderTimetable();
+        queueProfileCloudSave();
+      }
+
+      function saveProfileLocal() {
+        localStorage.setItem(profileStoreKey, JSON.stringify(timetableProfile, null, 2));
       }
 
       function seedDay() {
@@ -950,6 +1160,7 @@
         $("reviewWin").value = state.reviewWin || "";
         $("reviewNext").value = state.reviewNext || "";
         renderTasks();
+        renderTimetable();
         renderArticles();
         renderTransactions();
         renderGptMessages();
@@ -1080,6 +1291,88 @@
         } catch {
           return {};
         }
+      }
+
+      function renderTimetable() {
+        const info = getWeekInfo();
+        $("weekBadge").textContent = info.label;
+        $("semesterStart").value = timetableProfile.timetable.semesterStart || "";
+
+        const grid = $("scheduleGrid");
+        grid.innerHTML = "";
+        ["时间", ...weekdays].forEach((label) => {
+          const cell = document.createElement("div");
+          cell.className = "schedule-cell header";
+          cell.textContent = label;
+          grid.appendChild(cell);
+        });
+
+        scheduleSlots.forEach((slot, slotIndex) => {
+          const time = document.createElement("div");
+          time.className = "schedule-cell time";
+          time.textContent = slot;
+          grid.appendChild(time);
+
+          weekdays.forEach((_, dayIndex) => {
+            const cell = document.createElement("div");
+            cell.className = "schedule-cell";
+            const courses = timetableProfile.timetable.courses.filter((course) => {
+              return Number(course.day) === dayIndex + 1 && Number(course.slot) === slotIndex;
+            });
+            if (!courses.length) {
+              cell.innerHTML = '<span class="muted">空</span>';
+            }
+            courses.forEach((course) => {
+              const card = document.createElement("div");
+              const active = isCourseActive(course, info.week);
+              card.className = `schedule-card ${active ? "" : "inactive"}`;
+              const title = document.createElement("b");
+              title.textContent = course.title;
+              const meta = document.createElement("span");
+              meta.className = "muted";
+              meta.textContent = [parityText[course.parity] || "每周", course.location].filter(Boolean).join(" · ");
+              const remove = document.createElement("button");
+              remove.type = "button";
+              remove.textContent = "删除";
+              remove.addEventListener("click", () => {
+                timetableProfile.timetable.courses = timetableProfile.timetable.courses.filter((item) => item.id !== course.id);
+                persistProfile();
+              });
+              card.appendChild(title);
+              card.appendChild(meta);
+              card.appendChild(remove);
+              cell.appendChild(card);
+            });
+            grid.appendChild(cell);
+          });
+        });
+      }
+
+      function getWeekInfo() {
+        const start = timetableProfile.timetable.semesterStart;
+        if (!start) return { week: 0, parity: "odd", label: "设置开学日期" };
+        const startDate = parseLocalDate(start);
+        const currentDate = parseLocalDate(currentDayKey);
+        const diffDays = Math.floor((currentDate.getTime() - startDate.getTime()) / 86400000);
+        const week = diffDays < 0 ? 0 : Math.floor(diffDays / 7) + 1;
+        const parity = week % 2 === 0 ? "even" : "odd";
+        return {
+          week,
+          parity,
+          label: week > 0 ? `第 ${week} 周 · ${parity === "odd" ? "单周" : "双周"}` : "开学前"
+        };
+      }
+
+      function parseLocalDate(value) {
+        const [year, month, day] = value.split("-").map(Number);
+        return new Date(year, month - 1, day);
+      }
+
+      function isCourseActive(course, week) {
+        if (!week) return true;
+        if (course.parity === "odd") return week % 2 === 1;
+        if (course.parity === "even") return week % 2 === 0;
+        return true;
       }
 
       function renderArticles() {
@@ -1221,6 +1514,7 @@
           .slice(0, 14)
           .map(([dayKey, dayState]) => ({
             date: dayKey,
+            timetable: timetableProfile.timetable,
             tasks: (dayState.tasks || []).map((task) => ({
               title: task.title,
               priority: task.priority,
@@ -1328,6 +1622,30 @@
         persist();
       });
 
+      $("semesterStart").addEventListener("change", (event) => {
+        timetableProfile.timetable.semesterStart = event.target.value;
+        persistProfile();
+      });
+
+      $("scheduleForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const title = $("courseTitle").value.trim();
+        if (!title) return;
+        timetableProfile.timetable.courses.push({
+          id: crypto.randomUUID(),
+          title,
+          day: Number($("courseDay").value),
+          slot: Number($("courseSlot").value),
+          parity: $("courseParity").value,
+          location: $("courseLocation").value.trim()
+        });
+        event.target.reset();
+        $("courseDay").value = "1";
+        $("courseSlot").value = "0";
+        $("courseParity").value = "all";
+        persistProfile();
+      });
+
       $("gptForm").addEventListener("submit", async (event) => {
         event.preventDefault();
         const message = $("gptInput").value.trim();
@@ -1417,6 +1735,7 @@
         syncKey = nextKey;
         localStorage.setItem(syncStoreKey, syncKey);
         await loadCloudDay(currentDayKey);
+        await loadCloudProfile();
       });
 
       $("dayPicker").addEventListener("change", (event) => {
@@ -1536,11 +1855,42 @@
         }
       }
 
+      async function loadCloudProfile() {
+        if (!syncKey) return;
+        try {
+          const cloudData = await supabaseRpc("workbuddy_get_day", {
+            p_sync_key: syncKey,
+            p_entry_date: profileCloudDate
+          });
+          if (cloudData && cloudData.timetable) {
+            timetableProfile = cloudData;
+            normalizeProfile(timetableProfile);
+            saveProfileLocal();
+            renderTimetable();
+          } else {
+            await saveCloudProfile();
+          }
+        } catch (error) {
+          console.warn(error);
+        }
+      }
+
       function queueCloudSave() {
         if (!syncKey) return;
         clearTimeout(cloudSaveTimer);
         cloudSaveTimer = setTimeout(() => {
           saveCloudDay().catch((error) => {
+            console.warn(error);
+            setCloudStatus(error.message || "云同步失败");
+          });
+        }, 500);
+      }
+
+      function queueProfileCloudSave() {
+        if (!syncKey) return;
+        clearTimeout(profileCloudSaveTimer);
+        profileCloudSaveTimer = setTimeout(() => {
+          saveCloudProfile().catch((error) => {
             console.warn(error);
             setCloudStatus(error.message || "云同步失败");
           });
@@ -1558,8 +1908,18 @@
         setCloudStatus("云端已保存");
       }
 
+      async function saveCloudProfile() {
+        if (!syncKey) return;
+        await supabaseRpc("workbuddy_save_day", {
+          p_sync_key: syncKey,
+          p_entry_date: profileCloudDate,
+          p_data: timetableProfile
+        });
+      }
+
       render();
       loadCloudDay(currentDayKey);
+      loadCloudProfile();
     })();
 
     if ("serviceWorker" in navigator) {
