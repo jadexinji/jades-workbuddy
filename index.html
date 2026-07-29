@@ -128,6 +128,24 @@
       width: 148px;
     }
 
+    .sync-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .sync-control input {
+      width: 150px;
+    }
+
+    .cloud-status {
+      color: var(--muted);
+      font-size: 13px;
+      align-self: center;
+    }
+
     button,
     input,
     select,
@@ -534,8 +552,14 @@
         width: 100%;
       }
 
-      .day-picker input {
+      .day-picker input,
+      .sync-control input {
         width: 100%;
+      }
+
+      .sync-control,
+      .cloud-status {
+        grid-column: 1 / -1;
       }
 
       .money-form input[name="note"],
@@ -602,6 +626,12 @@
           <span>日期</span>
           <input id="dayPicker" type="date">
         </label>
+        <label class="sync-control">
+          <span>云同步</span>
+          <input id="syncKeyInput" type="password" placeholder="同步口令">
+        </label>
+        <button type="button" id="syncBtn">连接</button>
+        <span class="cloud-status" id="cloudStatus">本地模式</span>
         <button type="button" id="exportBtn">导出</button>
         <button type="button" id="resetBtn" class="ghost">清空当日</button>
       </div>
@@ -732,6 +762,9 @@
   <script>
     (() => {
       const storeKey = "codex-daily-workbench-v1";
+      const syncStoreKey = "jades-workbuddy-sync-key-v1";
+      const supabaseUrl = "https://pnupqynvlguppwyvewtl.supabase.co";
+      const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXBxeW52bGd1cHB3eXZld3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMjAwMjcsImV4cCI6MjEwMDg5NjAyN30.1uxLBFs185ljVUK08TQB3QAQ3XK7zD3pGtj9hYPpAS8";
       const actualTodayKey = getLocalDateKey(new Date());
       const embeddedArticleFeed = {
         // 每日自动化可以把当天外刊写到这里，格式示例：
@@ -750,11 +783,14 @@
       };
       let currentDayKey = actualTodayKey;
       let state = loadDay(currentDayKey);
+      let syncKey = localStorage.getItem(syncStoreKey) || "";
+      let cloudSaveTimer = null;
 
       const $ = (id) => document.getElementById(id);
       const priorityText = { high: "高", medium: "中", low: "低" };
 
       $("dayPicker").value = currentDayKey;
+      $("syncKeyInput").value = syncKey;
       renderHeaderDate();
       renderDailyQuote();
 
@@ -811,10 +847,15 @@
       }
 
       function persist() {
+        saveLocalOnly();
+        render();
+        queueCloudSave();
+      }
+
+      function saveLocalOnly() {
         const all = JSON.parse(localStorage.getItem(storeKey) || "{}");
         all[currentDayKey] = state;
         localStorage.setItem(storeKey, JSON.stringify(all, null, 2));
-        render();
       }
 
       function toast(message) {
@@ -1133,9 +1174,8 @@
       });
 
       function saveOnly() {
-        const all = JSON.parse(localStorage.getItem(storeKey) || "{}");
-        all[currentDayKey] = state;
-        localStorage.setItem(storeKey, JSON.stringify(all, null, 2));
+        saveLocalOnly();
+        queueCloudSave();
       }
 
       $("exportBtn").addEventListener("click", async () => {
@@ -1160,6 +1200,17 @@
         });
       });
 
+      $("syncBtn").addEventListener("click", async () => {
+        const nextKey = $("syncKeyInput").value.trim();
+        if (nextKey.length < 8) {
+          toast("同步口令至少 8 位");
+          return;
+        }
+        syncKey = nextKey;
+        localStorage.setItem(syncStoreKey, syncKey);
+        await loadCloudDay(currentDayKey);
+      });
+
       $("dayPicker").addEventListener("change", (event) => {
         if (!event.target.value) return;
         saveOnly();
@@ -1167,6 +1218,7 @@
         state = loadDay(currentDayKey);
         render();
         renderDailyQuote();
+        loadCloudDay(currentDayKey);
       });
 
       $("resetBtn").addEventListener("click", () => {
@@ -1205,7 +1257,78 @@
         $("dailyQuote").innerHTML = `<strong>今日一句</strong> ${quotes[index]}`;
       }
 
+      function setCloudStatus(message) {
+        $("cloudStatus").textContent = message;
+      }
+
+      async function supabaseRpc(functionName, payload) {
+        const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
+          method: "POST",
+          headers: {
+            apikey: supabaseAnonKey,
+            Authorization: `Bearer ${supabaseAnonKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || response.statusText);
+        }
+        return response.json();
+      }
+
+      async function loadCloudDay(dayKey) {
+        if (!syncKey) {
+          setCloudStatus("本地模式");
+          return;
+        }
+        try {
+          setCloudStatus("同步中");
+          const cloudData = await supabaseRpc("workbuddy_get_day", {
+            p_sync_key: syncKey,
+            p_entry_date: dayKey
+          });
+          if (cloudData && Object.keys(cloudData).length) {
+            state = cloudData;
+            normalizeDayState(state);
+            mergeEmbeddedArticles(state, dayKey);
+            saveLocalOnly();
+            render();
+          } else {
+            await saveCloudDay();
+          }
+          setCloudStatus("云端已连接");
+        } catch (error) {
+          console.warn(error);
+          setCloudStatus("云同步失败");
+        }
+      }
+
+      function queueCloudSave() {
+        if (!syncKey) return;
+        clearTimeout(cloudSaveTimer);
+        cloudSaveTimer = setTimeout(() => {
+          saveCloudDay().catch((error) => {
+            console.warn(error);
+            setCloudStatus("云同步失败");
+          });
+        }, 500);
+      }
+
+      async function saveCloudDay() {
+        if (!syncKey) return;
+        setCloudStatus("保存中");
+        await supabaseRpc("workbuddy_save_day", {
+          p_sync_key: syncKey,
+          p_entry_date: currentDayKey,
+          p_data: state
+        });
+        setCloudStatus("云端已保存");
+      }
+
       render();
+      loadCloudDay(currentDayKey);
     })();
 
     if ("serviceWorker" in navigator) {

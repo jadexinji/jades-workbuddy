@@ -23,3 +23,9 @@ Manual path:
 ## Important
 
 The app currently stores records in the browser's `localStorage`. A public URL lets the phone open it anywhere, including mobile data, but records are still saved in the browser on that device. Cross-device sync needs a backend or an online data source.
+
+## Supabase setup
+
+Open Supabase SQL Editor and run `supabase-schema.sql`.
+
+The current cloud sync uses a private sync key that Jade enters in the app. The public anon key is safe to put in the browser, while the sync key should be kept private. OpenAI API keys and Supabase service-role keys must not be put in this static site.
