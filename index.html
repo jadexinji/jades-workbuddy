@@ -816,7 +816,6 @@
     <nav class="nav-rail panel" aria-label="功能导航">
       <button type="button" class="nav-button" data-view-target="overview" aria-selected="true" onclick="window.showWorkbenchView('overview')">概览</button>
       <button type="button" class="nav-button" data-view-target="schedule" aria-selected="false" onclick="window.showWorkbenchView('schedule')">课表</button>
-      <button type="button" class="nav-button" id="mealCardBtn">饭卡</button>
       <button type="button" class="nav-button" data-view-target="tasks" aria-selected="false" onclick="window.showWorkbenchView('tasks')">任务</button>
       <button type="button" class="nav-button" data-view-target="finance" aria-selected="false" onclick="window.showWorkbenchView('finance')">收支</button>
       <button type="button" class="nav-button" data-view-target="articles" aria-selected="false" onclick="window.showWorkbenchView('articles')">外刊</button>
@@ -993,8 +992,6 @@
       const profileStoreKey = "jades-workbuddy-profile-v1";
       const syncStoreKey = "jades-workbuddy-sync-key-v1";
       const profileCloudDate = "2000-01-01";
-      const mealCardMiniProgramLink = "#小程序://上海海洋大学一卡通/XNZI2WJpUdgMaUs";
-      const wechatAppLink = "weixin://";
       const supabaseUrl = "https://pnupqynvlguppwyvewtl.supabase.co";
       const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBudXBxeW52bGd1cHB3eXZld3RsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzMjAwMjcsImV4cCI6MjEwMDg5NjAyN30.1uxLBFs185ljVUK08TQB3QAQ3XK7zD3pGtj9hYPpAS8";
       const weekdays = ["周一", "周二", "周三", "周四", "周五"];
@@ -1727,19 +1724,6 @@
         button.addEventListener("click", () => {
           window.showWorkbenchView(button.dataset.viewTarget);
         });
-      });
-
-      $("mealCardBtn").addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(mealCardMiniProgramLink);
-        } catch {}
-        if (/MicroMessenger/i.test(navigator.userAgent)) {
-          window.location.href = mealCardMiniProgramLink;
-          toast("已尝试打开饭卡");
-        } else {
-          window.location.href = wechatAppLink;
-          toast("已打开微信；饭卡口令已复制");
-        }
       });
 
       $("syncBtn").addEventListener("click", async () => {
