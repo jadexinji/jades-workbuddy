@@ -501,6 +501,7 @@
       padding: 14px 2px 2px;
       text-align: center;
       font-size: 14px;
+      line-height: 1.45;
     }
 
     .quote strong {
@@ -665,6 +666,11 @@
       .article-actions {
         align-items: stretch;
       }
+
+      .quote {
+        font-size: 12px;
+        text-align: left;
+      }
     }
   </style>
 
@@ -697,6 +703,7 @@
       <button type="button" class="nav-button" data-view-target="articles" aria-selected="false" onclick="window.showWorkbenchView('articles')">外刊</button>
       <button type="button" class="nav-button" data-view-target="gpt" aria-selected="false" onclick="window.showWorkbenchView('gpt')">GPT</button>
       <button type="button" class="nav-button" data-view-target="review" aria-selected="false" onclick="window.showWorkbenchView('review')">回顾</button>
+      <footer class="quote" id="dailyQuote"></footer>
     </nav>
 
     <section class="view-stack">
@@ -808,7 +815,6 @@
       </section>
       </section>
     </section>
-    <footer class="quote" id="dailyQuote"></footer>
   </main>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
