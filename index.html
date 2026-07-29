@@ -631,11 +631,10 @@
       right: 14px;
       bottom: calc(14px + env(safe-area-inset-bottom));
       z-index: 20;
-      width: 82px;
-      height: 112px;
+      width: 96px;
+      height: 132px;
       padding: 0;
       border: 0;
-      border-radius: 18px;
       background: transparent;
       display: block;
       cursor: pointer;
@@ -644,14 +643,11 @@
     }
 
     .desk-pet img {
-      width: 82px;
-      height: 112px;
-      border: 2px solid rgba(23, 105, 194, 0.55);
-      border-radius: 18px;
-      box-shadow: 0 12px 26px rgba(16, 36, 63, 0.22);
-      object-fit: cover;
-      object-position: 43% 32%;
+      width: 96px;
+      height: 132px;
+      object-fit: contain;
       display: block;
+      filter: drop-shadow(0 12px 16px rgba(16, 36, 63, 0.24));
     }
 
     .pet-bubble {
@@ -854,14 +850,13 @@
 
       .desk-pet {
         right: 9px;
-        width: 66px;
-        height: 90px;
+        width: 76px;
+        height: 104px;
       }
 
       .desk-pet img {
-        width: 66px;
-        height: 90px;
-        border-radius: 15px;
+        width: 76px;
+        height: 104px;
       }
 
       .pet-bubble {
@@ -1054,7 +1049,7 @@
   </main>
   <button type="button" class="desk-pet" id="deskPet" aria-label="桌宠提醒">
     <span class="pet-bubble" id="petBubble"></span>
-    <img src="desk-pet.webp" alt="Jade's Workbuddy 桌宠">
+    <img src="desk-pet-cutout.webp" alt="Jade's Workbuddy 桌宠">
   </button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
