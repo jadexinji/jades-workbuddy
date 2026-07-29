@@ -356,6 +356,11 @@
       display: none;
     }
 
+    .article-intro {
+      display: grid;
+      gap: 4px;
+    }
+
     .article-card {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -852,6 +857,14 @@
         padding: 12px;
       }
 
+      #daily-workbench.articles-mode .article-intro {
+        padding: 10px 12px 0;
+      }
+
+      #daily-workbench.articles-mode .article-intro h2 {
+        display: none;
+      }
+
       #daily-workbench.schedule-mode .schedule-dates {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1233,6 +1246,10 @@
             <h2>外刊阅读</h2>
             <p class="muted" id="articleDateLine">等待今日推送</p>
           </div>
+        </div>
+        <div class="article-intro">
+          <h2>外刊阅读</h2>
+          <p class="muted">Daily automation adds one complete English reading passage here</p>
         </div>
         <div id="articleList" class="article"></div>
       </section>
