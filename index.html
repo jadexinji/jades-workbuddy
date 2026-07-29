@@ -352,6 +352,15 @@
       margin-top: 12px;
     }
 
+    .article-appbar {
+      display: none;
+    }
+
+    .article-config {
+      display: grid;
+      gap: 8px;
+    }
+
     .article-card {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -746,23 +755,43 @@
         overflow-x: hidden;
       }
 
+      #daily-workbench.articles-mode {
+        background: #ffffff;
+        padding: 0;
+        overflow-x: hidden;
+      }
+
       #daily-workbench.schedule-mode .topbar,
       #daily-workbench.schedule-mode .nav-rail,
-      #daily-workbench.schedule-mode .desk-pet {
+      #daily-workbench.schedule-mode .desk-pet,
+      #daily-workbench.articles-mode .topbar,
+      #daily-workbench.articles-mode .nav-rail,
+      #daily-workbench.articles-mode .desk-pet {
         display: none;
       }
 
-      #daily-workbench.schedule-mode .shell {
+      #daily-workbench.schedule-mode .shell,
+      #daily-workbench.articles-mode .shell {
         max-width: none;
         grid-template-columns: 1fr;
         gap: 0;
       }
 
-      #daily-workbench.schedule-mode .view-stack {
+      #daily-workbench.schedule-mode .view-stack,
+      #daily-workbench.articles-mode .view-stack {
         grid-column: 1 / -1;
       }
 
       #daily-workbench.schedule-mode [data-view="schedule"] > .panel {
+        min-height: 100vh;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        padding: calc(10px + env(safe-area-inset-top)) 0 calc(82px + env(safe-area-inset-bottom));
+        background: #ffffff;
+      }
+
+      #daily-workbench.articles-mode [data-view="articles"] > .panel {
         min-height: 100vh;
         border: 0;
         border-radius: 0;
@@ -789,18 +818,32 @@
         background: #ffffff;
       }
 
-      .schedule-appbar h2 {
+      #daily-workbench.articles-mode .article-appbar {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) 42px;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px 10px;
+        border-bottom: 1px solid var(--line);
+        background: #ffffff;
+      }
+
+      .schedule-appbar h2,
+      .article-appbar h2 {
         font-size: 24px;
         line-height: 1.1;
       }
 
-      .schedule-appbar .muted {
+      .schedule-appbar .muted,
+      .article-appbar .muted {
         font-size: 13px;
         margin-top: 3px;
       }
 
       .schedule-menu,
-      .schedule-add {
+      .schedule-add,
+      .article-menu,
+      .article-add {
         min-height: 42px;
         border: 0;
         background: transparent;
@@ -809,11 +852,27 @@
         line-height: 1;
       }
 
-      .schedule-add {
+      .schedule-add,
+      .article-add {
         border-radius: 10px;
         background: var(--accent);
         color: var(--accent-ink);
         font-size: 32px;
+      }
+
+      #daily-workbench.articles-mode .article-config {
+        display: none;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      #daily-workbench.articles-mode .article-config.open {
+        display: grid;
+      }
+
+      #daily-workbench.articles-mode .article {
+        margin-top: 0;
+        padding: 12px;
       }
 
       #daily-workbench.schedule-mode .schedule-dates {
@@ -1191,16 +1250,26 @@
 
       <section class="view" data-view="articles">
       <section class="panel">
-        <h2>外刊阅读</h2>
-        <p class="muted">Daily automation adds one complete English reading passage here</p>
+        <div class="article-appbar">
+          <button type="button" class="article-menu" id="articleBackBtn" aria-label="返回概览">≡</button>
+          <div>
+            <h2>外刊阅读</h2>
+            <p class="muted" id="articleDateLine">等待今日推送</p>
+          </div>
+          <button type="button" class="article-add" id="articleAddBtn" aria-label="手动添加外刊">+</button>
+        </div>
+        <div class="article-config" id="articleConfig">
+          <h2>外刊阅读</h2>
+          <p class="muted">Daily automation adds one complete English reading passage here</p>
+          <form id="articleForm" class="article-form">
+            <input id="articleTitle" name="title" placeholder="标题" required>
+            <input id="articleSource" name="source" placeholder="来源">
+            <input id="articleUrl" name="url" type="url" placeholder="链接">
+            <textarea id="articleNote" name="note" placeholder="摘记"></textarea>
+            <button class="primary" type="submit">加入阅读</button>
+          </form>
+        </div>
         <div id="articleList" class="article"></div>
-        <form id="articleForm" class="article-form">
-          <input id="articleTitle" name="title" placeholder="标题" required>
-          <input id="articleSource" name="source" placeholder="来源">
-          <input id="articleUrl" name="url" type="url" placeholder="链接">
-          <textarea id="articleNote" name="note" placeholder="摘记"></textarea>
-          <button class="primary" type="submit">加入阅读</button>
-        </form>
       </section>
       </section>
 
@@ -1235,7 +1304,9 @@
 
   <script>
     window.showWorkbenchView = function (viewName) {
-      document.getElementById("daily-workbench").classList.toggle("schedule-mode", viewName === "schedule");
+      const workbench = document.getElementById("daily-workbench");
+      workbench.classList.toggle("schedule-mode", viewName === "schedule");
+      workbench.classList.toggle("articles-mode", viewName === "articles");
       document.querySelectorAll("[data-view]").forEach((view) => {
         const isActive = view.dataset.view === viewName;
         view.classList.toggle("active", isActive);
@@ -1441,6 +1512,7 @@
         $("reviewNext").value = state.reviewNext || "";
         renderTasks();
         renderTimetable();
+        renderArticleHeader();
         renderArticles();
         renderTransactions();
         renderGptMessages();
@@ -1737,6 +1809,14 @@
         });
       }
 
+      function renderArticleHeader() {
+        const line = $("articleDateLine");
+        if (!line) return;
+        const unread = state.articles.filter((article) => !article.read).length;
+        const articleLabel = state.articles.length ? `${state.articles.length} 篇 · ${unread} 篇待读` : "等待今日推送";
+        line.textContent = `${currentDayKey} · ${articleLabel}`;
+      }
+
       function appendList(parent, label, items) {
         if (!Array.isArray(items) || !items.length) return;
         const title = document.createElement("h3");
@@ -1897,6 +1977,7 @@
           read: false
         });
         event.target.reset();
+        $("articleConfig").classList.remove("open");
         persist();
       });
 
@@ -2035,6 +2116,14 @@
 
       $("scheduleAddBtn").addEventListener("click", () => {
         $("scheduleConfig").classList.toggle("open");
+      });
+
+      $("articleBackBtn").addEventListener("click", () => {
+        window.showWorkbenchView("overview");
+      });
+
+      $("articleAddBtn").addEventListener("click", () => {
+        $("articleConfig").classList.toggle("open");
       });
 
       $("deskPet").addEventListener("click", showPetLine);
