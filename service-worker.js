@@ -1,8 +1,9 @@
-const cacheName = "jade-workbuddy-v12";
+const cacheName = "jade-workbuddy-v13";
 const files = [
   "./index.html",
   "./manifest.webmanifest",
-  "./workbuddy-icon.svg"
+  "./workbuddy-icon.svg",
+  "./desk-pet.webp"
 ];
 
 self.addEventListener("install", (event) => {

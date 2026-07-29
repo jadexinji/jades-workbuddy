@@ -626,10 +626,73 @@
       text-align: center;
     }
 
+    .desk-pet {
+      position: fixed;
+      right: 14px;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      z-index: 20;
+      width: 82px;
+      height: 112px;
+      padding: 0;
+      border: 0;
+      border-radius: 18px;
+      background: transparent;
+      display: block;
+      cursor: pointer;
+      touch-action: manipulation;
+      animation: petFloat 3.4s ease-in-out infinite;
+    }
+
+    .desk-pet img {
+      width: 82px;
+      height: 112px;
+      border: 2px solid rgba(23, 105, 194, 0.55);
+      border-radius: 18px;
+      box-shadow: 0 12px 26px rgba(16, 36, 63, 0.22);
+      object-fit: cover;
+      object-position: 43% 32%;
+      display: block;
+    }
+
+    .pet-bubble {
+      position: absolute;
+      right: 76px;
+      bottom: 72px;
+      width: min(220px, calc(100vw - 118px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      color: var(--text);
+      padding: 9px 10px;
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: left;
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+    }
+
+    .pet-bubble.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    @keyframes petFloat {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-5px);
+      }
+    }
+
     .toast {
       position: fixed;
       right: 18px;
-      bottom: 18px;
+      bottom: calc(140px + env(safe-area-inset-bottom));
       background: var(--text);
       color: var(--bg);
       padding: 10px 12px;
@@ -787,6 +850,24 @@
       .quote {
         font-size: 12px;
         text-align: left;
+      }
+
+      .desk-pet {
+        right: 9px;
+        width: 66px;
+        height: 90px;
+      }
+
+      .desk-pet img {
+        width: 66px;
+        height: 90px;
+        border-radius: 15px;
+      }
+
+      .pet-bubble {
+        right: 60px;
+        bottom: 60px;
+        width: min(190px, calc(100vw - 88px));
       }
     }
   </style>
@@ -971,6 +1052,10 @@
       </section>
     </section>
   </main>
+  <button type="button" class="desk-pet" id="deskPet" aria-label="桌宠提醒">
+    <span class="pet-bubble" id="petBubble"></span>
+    <img src="desk-pet.webp" alt="Jade's Workbuddy 桌宠">
+  </button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
@@ -1024,10 +1109,20 @@
       let syncKey = localStorage.getItem(syncStoreKey) || "";
       let cloudSaveTimer = null;
       let profileCloudSaveTimer = null;
+      let petBubbleTimer = null;
 
       const $ = (id) => document.getElementById(id);
       const priorityText = { high: "高", medium: "中", low: "低" };
       const parityText = { all: "每周", odd: "单周", even: "双周" };
+      const petLines = [
+        "看我干什么，看书。",
+        "今天的任务不写完，我先替你沉默。",
+        "你已经打开工作台了，别让它只是个摆设。",
+        "焦虑可以，先把第一件事做掉。",
+        "别和计划谈恋爱，执行一下。",
+        "复旦不会因为你困就心软。",
+        "还没学？那我就安静地盯着你。"
+      ];
 
       $("dayPicker").value = currentDayKey;
       $("syncKeyInput").value = syncKey;
@@ -1147,6 +1242,15 @@
         el.textContent = message;
         el.classList.add("show");
         setTimeout(() => el.classList.remove("show"), 1700);
+      }
+
+      function showPetLine() {
+        const bubble = $("petBubble");
+        const index = Math.floor(Math.random() * petLines.length);
+        bubble.textContent = petLines[index];
+        bubble.classList.add("show");
+        clearTimeout(petBubbleTimer);
+        petBubbleTimer = setTimeout(() => bubble.classList.remove("show"), 2800);
       }
 
       function render() {
@@ -1725,6 +1829,8 @@
           window.showWorkbenchView(button.dataset.viewTarget);
         });
       });
+
+      $("deskPet").addEventListener("click", showPetLine);
 
       $("syncBtn").addEventListener("click", async () => {
         const nextKey = $("syncKeyInput").value.trim();
